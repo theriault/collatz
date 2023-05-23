@@ -4,13 +4,19 @@ Author: Dustin Thériault, 2023
 
 ## Abstract
 
-The Collatz conjecture, $3n+1$, is a well-known open problem. Our main result is a function $h$ that empirically reduces the total stopping time of the standard recursive function $f$ and reduced recursive function $g$ for the Collatz conjecture. We have observed the following.
+The Collatz conjecture, $3x+1$, is a well-known open problem around the function/mapping $C : \mathbb{N}_1 \to \mathbb{N}_1$.
 
 $$
-\frac{\sum h(x)}{\sum f(x)} \approx \frac{1}{6} \qquad \frac{\sum h(x)}{\sum g(x)} \approx \frac{1}{2}
+C(x) = \begin{cases}
+x/2 & \text{if } x \text{ is even} \\
+3x+1 & \text{if } x \text{ is odd}
+\end{cases}
 $$
 
-We provide source code in Go for all three functions.
+Our main result is a reduced function $R^\prime$ that improves upon the 
+existing reduced function $R(x) = (3x+1)/2^m$[^1], where $x$ is odd, where $2^m$ is the highest power of 2 that divides $3x+1$.
+
+We have observed that it improves the total stopping time/recursion of $C$ by about 1/6 as $x \to \infty$ and the total stopping time/recursion of the reduced function $R$ by about 1/2 as $x \to \infty$.
 
 ## Introduction
 
@@ -19,8 +25,7 @@ We define the standard total stopping time as the following recursive function $
 $$
 f(x) = \begin{cases}
 0           & \text{if } x = 1 \\
-1 + f(x/2)  & \text{if } x \equiv 0 \pmod 2 \\
-1 + f(3x+1) & \text{if } x \equiv 1 \pmod 2 \text{ and } x \ne 1
+1 + f(C(x)) & \text{otherwise}
 \end{cases}
 $$
 
@@ -36,19 +41,33 @@ bin/collatz time --graph histogram --fn f --k 10 # command to generate above
 
 ## Reduced Collatz Function R
 
-The reduced Collatz function $R$ is a well-known technique that simplifies the calculation of the Collatz sequence. The
-recursive function $g : \mathbb{N}_1 \to \mathbb{N}_0$ gives the total stopping time of this function, where $2^r$ is
-the largest power of 2 that divides the given numerator.
+The reduced Collatz function $R(x) = (3x+1)/2^m$, where $2^m$ is the highest power of 2 that divides $(3x+1)$, is a well-known technique that simplifies the calculation of a Collatz sequence for odd numbers[^1]. Given an odd positive integer $x$, we can jump ahead $m$ steps in a Collatz orbit utilizing $R$.
+
+The recursive function $g : \mathbb{N}_1 \to \mathbb{N}_0$ gives the total stopping time if we utilize $R$.
 
 $$
 g(x) = \begin{cases}
 0                 & \text{if } x = 1 \\
-1 + g(x/2^r)      & \text{if } x \equiv 0 \pmod 2 \\
-1 + g((3x+1)/2^r) & \text{if } x \equiv 1 \pmod 2 \text{ and } x \ne 1
+1 + g(x/2^m)      & \text{if } x \equiv 0 \pmod 2 \\
+1 + g(R(x)) & \text{if } x \equiv 1 \pmod 2 \text{ and } x \ne 1
 \end{cases}
 $$
 
 If the Collatz conjecture is proven true, then this function halts for all $x$ and its values are given by [A286380](https://oeis.org/A286380).
+
+Using 2-adic valuation $\nu_2$, an alternative function $g^\prime$ can be used to compute $f$:
+
+$$
+g^\prime(x) = \begin{cases}
+0                 & \text{if } x = 1 \\
+m + g^\prime(x/2^m)      & \text{if } x \equiv 0 \pmod 2 \\
+1 + \nu_2(3x+1) + g^\prime(R(x)) & \text{if } x \equiv 1 \pmod 2 \text{ and } x \ne 1
+\end{cases}
+$$
+
+$$
+g^\prime(x) = f(x)
+$$
 
 The following is a histogram of $g(x)$ up to $10^{10}$
 
@@ -60,20 +79,20 @@ bin/collatz time --graph histogram --fn g --k 10 # command to generate above
 
 ## Main Result
 
-The main result of this paper is the recursive function $h : \mathbb{N}_1 \to \mathbb{N}_0$, which produces a further optimized
-total stopping time, where $2^r$ is the largest power of $2$ that divides the given numerator, and $\nu_2(x)$ is the 2-adic valuation.
+The main result of this paper is the reduced function $R^\prime$, where $x$ is odd, where $\nu_2$ is the 2-adic valuation, where $2^m$ is the highest power of 2 dividing the numerator.
+
+$$
+R^\prime(x) = \frac{\left(\frac{3}{2}\right)^{\nu_2\left(\frac{x-1}{2}+1\right)} \cdot \left(\frac{3x+1}{2}+1\right) - 1}{2^m}
+$$
+
+The recursive function $g : \mathbb{N}_1 \to \mathbb{N}_0$ gives the total stopping time utilizing $R^\prime$, where $2^m$ is the highest power of 2 that divides the numerator.
 
 $$
 h(x) = \begin{cases}
 0                      & \text{if } x = 1 \\
-1 + h(x/2^r)           & \text{if } x \equiv 0 \pmod 2 \\
-1 + h((3x+1)/2^r)      & \text{if } x \equiv 1 \pmod 4 \text{ and } x \ne 1 \\
-1 + h(k((3x+1)/2)/2^r) & \text{if } x \equiv 3 \pmod 4
+1 + h(x/2^m)           & \text{if } x \equiv 0 \pmod 2 \\
+1 + h(R^\prime(x)) & \text{if } x \equiv 1 \pmod 2 \text{ and } x \ne 1
 \end{cases}
-$$
-
-$$
-k(x) = (3/2)^{\nu_2(x+1)}(x+1)-1
 $$
 
 If the Collatz conjecture is true, then this function halts for all $x$ and its values appear to be given by [A160541](https://oeis.org/A160541).
@@ -110,16 +129,15 @@ If we examine only $h(x)$:
 bin/collatz time --graph scatter --fn h --k 6 # command to generate above
 ```
 
-While a rigorous proof of $h$ would be important, we currently do not provide one here. However, one can
-recover $f$ using the following variation of $h$, where $2^r$ is the largest factor of 2 that divides a given 
-numerator, $k$ is the function defined earlier, and $\nu_2(x)$ is the 2-adic valuation of $x$.
+While a rigorous proof of $R^\prime$ would be important, we currently do not provide one here. However, one can
+recover $f$ using the following variation of $h^\prime$, where $2^m$ is the highest power of 2 that divides the 
+numerator, and $\nu_2(x)$ is the 2-adic valuation of $x$.
 
 $$
 h^\prime(x) = \begin{cases}
 0                                                        & \text{if } x = 1 \\
-r + h^\prime(x/2^r)                                      & \text{if } x \equiv 0 \pmod 2 \\
-1 + r + h^\prime((3x+1)/2^r)                             & \text{if } x \equiv 1 \pmod 4 \text{ and } x \ne 1 \\
-2 + r + 2\nu_2(((3x+1)/2)+1) + h^\prime(k((3x+1)/2)/2^r) & \text{if } x \equiv 3 \pmod 4
+m + h^\prime(x/2^m)                                      & \text{if } x \equiv 0 \pmod 2 \\
+m + 2\nu_2(x+1) + h^\prime(R^\prime(x)) & \text{if } x \equiv 1 \pmod 2 \text{ and } x \ne 1
 \end{cases}
 $$
 
@@ -156,3 +174,5 @@ bin/collatz ratios --graph line --fn g --k 10 --group=1000000 # command to gener
 ```sh
 bin/collatz ratios --graph histogram --fn g --k 9 --group=10000000
 ```
+
+[^1]: Livio Colussi. Some contributions to Collatz conjecture. https://arxiv.org/abs/1703.03918
