@@ -51,9 +51,6 @@ func CollatzStoppingTimeG(n uint64) (uint64, uint64, uint64) {
 		reducedTime++
 	}
 	for n != 1 {
-		if n > maxN {
-			maxN = n
-		}
 		n = n<<1 + n + 1 // 3n+1
 		normalTime++
 		for n&1 == 0 { // n/2^m
@@ -61,6 +58,9 @@ func CollatzStoppingTimeG(n uint64) (uint64, uint64, uint64) {
 			normalTime++
 		}
 		reducedTime++
+		if n > maxN {
+			maxN = n
+		}
 	}
 	return reducedTime, normalTime, maxN
 }
@@ -87,29 +87,20 @@ func CollatzStoppingTimeH(n uint64) (uint64, uint64, uint64) {
 		reducedTime++
 	}
 	for n != 1 {
-		if n > maxN {
-			maxN = n
-		}
-		// variation of ((3x+1)/2)+1 that doesn't get as large
-		n = ((n - 1) >> 1) + 1
-		x := n
-		n = (n << 1) + n
-		normalTime += 2
-		// multiply n by (3/2) until x is no longer divisible by 2
-		for x&1 == 0 {
-			x >>= 1
-			n = (n >> 1) + n
+		// multiply (n+1) by (3/2) until (n+1) is no longer divisible by 2
+		for n&1 == 1 {
+			n += (n >> 1) + 1
 			normalTime += 2
 		}
-		n--
+		// divide n by 2 until n is no longer divisible by 2
 		for n&1 == 0 { // n/2^m
 			n >>= 1
 			normalTime++
 		}
-		reducedTime++
 		if n > maxN {
 			maxN = n
 		}
+		reducedTime++
 	}
 	return reducedTime, normalTime, maxN
 }
